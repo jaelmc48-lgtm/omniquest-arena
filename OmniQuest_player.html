@@ -1,0 +1,897 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>OmniQuest Arena — Jogador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0d0f14; --surface: #161a24; --surface2: #1e2333;
+            --border: rgba(255,255,255,0.07); --border-hi: rgba(255,255,255,0.14);
+            --accent: #6c63ff; --accent-hi: #8b85ff;
+            --red: #ff6b6b; --gold: #ffd166; --green: #06d6a0;
+            --text: #e8eaf6; --text-muted: #6b7280;
+            --font-display: 'Bebas Neue', cursive; --font-body: 'DM Sans', sans-serif;
+            --radius: 14px; --radius-sm: 8px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+        body { font-family: var(--font-body); background: var(--bg); color: var(--text); min-height: 100vh; overflow-x: hidden; }
+        button { border: none; cursor: pointer; font-family: var(--font-body); transition: transform 0.12s, opacity 0.2s; }
+        button:active { transform: scale(0.95); }
+        button:disabled { opacity: 0.35; cursor: not-allowed; }
+        input[type="text"] { width: 100%; padding: 12px 14px; border-radius: var(--radius-sm); border: 1px solid var(--border-hi); font-family: var(--font-body); background: var(--surface); color: var(--text); font-size: 1rem; }
+        input[type="text"]:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px rgba(108,99,255,0.2); }
+
+        /* ── TELAS GERAIS ── */
+        .screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px 20px; }
+        .card { background: var(--surface); border: 1px solid var(--border-hi); border-radius: 20px; padding: 24px; width: 100%; max-width: 400px; }
+
+        /* ── BOTÃO PRIMÁRIO ── */
+        .btn-primary { width: 100%; padding: 16px; border-radius: var(--radius); font-weight: 700; font-size: 0.95rem; letter-spacing: 0.5px; text-transform: uppercase; color: white; background: var(--accent); box-shadow: 0 4px 18px rgba(108,99,255,0.3); position: relative; overflow: hidden; margin-top: 10px; }
+        .btn-primary::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.1) 0%,transparent 55%); pointer-events:none; }
+        .btn-primary:hover:not(:disabled) { box-shadow: 0 6px 24px rgba(108,99,255,0.5); }
+
+        /* ── JOIN SCREEN ── */
+        .join-logo { font-size: 4rem; margin-bottom: 6px; filter: drop-shadow(0 0 20px rgba(108,99,255,0.5)); }
+        .join-title { font-family: var(--font-display); font-size: 2.2rem; letter-spacing: 3px; color: var(--text); margin-bottom: 4px; }
+        .join-sub { font-size: 0.82rem; color: var(--text-muted); margin-bottom: 28px; }
+
+        .room-input { text-align: center; font-size: 2rem; font-weight: 800; letter-spacing: 8px; text-transform: uppercase; height: 64px; padding: 0 12px; }
+        .name-input { font-size: 1rem; height: 52px; }
+        .avatar-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 12px 0; }
+        .avatar-btn { width: 44px; height: 44px; border-radius: 50%; background: var(--surface2); border: 2px solid var(--border); font-size: 1.4rem; display: flex; align-items: center; justify-content: center; transition: all 0.15s; }
+        .avatar-btn.selected { border-color: var(--accent); background: rgba(108,99,255,0.18); transform: scale(1.15); }
+        .field-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 6px; display: block; }
+        .player-idx-select { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin: 8px 0; }
+        .idx-btn { padding: 10px 6px; border-radius: var(--radius-sm); background: var(--surface2); border: 1.5px solid var(--border); color: var(--text); font-weight: 700; font-size: 0.85rem; }
+        .idx-btn.selected { border-color: var(--accent); background: rgba(108,99,255,0.15); color: var(--accent-hi); }
+
+        /* ── LOBBY SCREEN (aguardando jogo) ── */
+        .lobby-card { text-align: center; padding: 32px 24px; }
+        .lobby-avatar { font-size: 4rem; margin-bottom: 8px; }
+        .lobby-name { font-family: var(--font-display); font-size: 2rem; letter-spacing: 2px; color: var(--text); }
+        .lobby-room { font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+        .status-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 50px; font-size: 0.78rem; font-weight: 700; margin-top: 12px; }
+        .chip-waiting { background: rgba(255,209,102,0.15); color: var(--gold); border: 1px solid rgba(255,209,102,0.3); }
+        .chip-online  { background: rgba(6,214,160,0.15); color: var(--green); border: 1px solid rgba(6,214,160,0.3); }
+        .pulse { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+        /* ── GAME SCREEN ── */
+        .game-screen { min-height: 100vh; display: flex; flex-direction: column; background: var(--bg); padding-bottom: 16px; }
+        .game-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 12px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; position: sticky; top: 0; z-index: 50; }
+        .game-header-left { display: flex; align-items: center; gap: 8px; }
+        .my-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--surface2); display: flex; align-items: center; justify-content: center; font-size: 1.2rem; border: 2px solid var(--accent); flex-shrink: 0; }
+        .my-info { display: flex; flex-direction: column; }
+        .my-name { font-weight: 700; font-size: 0.88rem; line-height: 1.2; }
+        .my-pos  { font-size: 0.68rem; color: var(--text-muted); }
+        .room-badge { font-size: 0.7rem; font-weight: 700; color: var(--accent); background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.25); padding: 3px 9px; border-radius: 20px; }
+
+        /* ── PAINEL STATUS ── */
+        .status-panel { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+        .turn-banner { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px 16px; display: flex; align-items: center; gap: 12px; }
+        .turn-banner.my-turn { background: rgba(108,99,255,0.12); border-color: rgba(108,99,255,0.4); animation: myTurnGlow 1.5s ease-in-out infinite alternate; }
+        @keyframes myTurnGlow { from{box-shadow:0 0 0 rgba(108,99,255,0)} to{box-shadow:0 0 20px rgba(108,99,255,0.3)} }
+        .turn-avatar-big { font-size: 1.8rem; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 50%; flex-shrink: 0; }
+        .turn-info { flex: 1; }
+        .turn-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); }
+        .turn-name  { font-family: var(--font-display); font-size: 1.35rem; letter-spacing: 1px; line-height: 1.1; }
+
+        /* ── SCOREBOARD ── */
+        .scoreboard { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+        .scoreboard-title { padding: 8px 14px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); border-bottom: 1px solid var(--border); }
+        .score-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-bottom: 1px solid var(--border); }
+        .score-row:last-child { border-bottom: none; }
+        .score-row.active-player { background: rgba(108,99,255,0.08); }
+        .score-row.me { background: rgba(6,214,160,0.06); }
+        .score-pos-num { font-size: 0.7rem; font-weight: 700; color: var(--text-muted); width: 18px; text-align: center; flex-shrink: 0; }
+        .score-avatar  { font-size: 1rem; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; background: var(--surface2); border-radius: 50%; flex-shrink: 0; }
+        .score-name    { flex: 1; font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .score-pts     { font-size: 0.75rem; font-weight: 700; color: var(--gold); flex-shrink: 0; }
+        .score-tile    { font-size: 0.68rem; color: var(--text-muted); flex-shrink: 0; min-width: 50px; text-align: right; }
+        .badge-sm { padding: 2px 6px; border-radius: 20px; font-size: 0.6rem; font-weight: 700; color: white; }
+
+        /* ── ÁREA DE AÇÃO ── */
+        .action-area { padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; }
+        .action-card { background: var(--surface); border: 1px solid var(--border-hi); border-radius: var(--radius); overflow: hidden; }
+        .action-card-header { padding: 10px 14px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; display: flex; align-items: center; gap: 8px; }
+
+        /* ── DADO (simplificado para mobile) ── */
+        .dice-display { font-size: 4rem; text-align: center; padding: 12px 0 4px; line-height: 1; }
+        .dice-result-text { text-align: center; font-weight: 700; font-size: 1.1rem; color: var(--gold); min-height: 1.5rem; margin-bottom: 8px; }
+        .btn-roll { padding: 18px; border-radius: var(--radius); font-weight: 800; font-size: 1.1rem; letter-spacing: 1px; text-transform: uppercase; color: white; width: 100%; box-shadow: 0 6px 24px rgba(108,99,255,0.4); position: relative; overflow: hidden; }
+        .btn-roll::before { content:''; position:absolute; inset:0; background:linear-gradient(135deg,rgba(255,255,255,0.12) 0%,transparent 55%); pointer-events:none; }
+        .btn-roll:disabled { background: var(--surface2) !important; box-shadow: none; }
+
+        /* ── PERGUNTA ── */
+        .question-card { background: var(--surface); border: 1px solid var(--border-hi); border-radius: var(--radius); overflow: hidden; }
+        .timer-bar-container { height: 4px; background: rgba(255,255,255,0.07); }
+        .timer-bar { height: 100%; background: var(--green); transition: width 1s linear; }
+        .question-header { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; }
+        .question-cat { font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--accent); }
+        .question-timer { font-family: var(--font-display); font-size: 1.6rem; color: var(--gold); line-height: 1; }
+        .question-text { padding: 0 14px 14px; font-size: 0.95rem; font-weight: 600; line-height: 1.55; }
+        .question-options { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+        .opt-btn { display: flex; align-items: center; gap: 12px; padding: 14px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface2); color: var(--text); text-align: left; width: 100%; font-size: 0.9rem; font-weight: 500; transition: all 0.15s; }
+        .opt-btn:active:not(:disabled) { transform: scale(0.97); }
+        .opt-btn:hover:not(:disabled) { border-color: var(--accent); background: rgba(108,99,255,0.1); }
+        .opt-btn.correct { border-color: var(--green) !important; background: rgba(6,214,160,0.15) !important; }
+        .opt-btn.wrong   { border-color: var(--red) !important; background: rgba(255,107,107,0.15) !important; }
+        .opt-letter { width: 32px; height: 32px; min-width: 32px; background: var(--accent); color: white; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0; }
+        .card-actions { display: flex; flex-wrap: wrap; gap: 7px; padding: 0 14px 14px; }
+        .btn-card { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--radius-sm); font-size: 0.78rem; font-weight: 700; color: var(--accent-hi); background: rgba(108,99,255,0.12); border: 1px solid rgba(108,99,255,0.3); }
+
+        /* ── MOCHILA / CARTAS ── */
+        .inventory-section { padding: 0 16px 12px; }
+        .inv-title { font-size: 0.65rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; }
+        .cards-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 8px; }
+        .card-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
+        .card-icon { font-size: 1.4rem; flex-shrink: 0; }
+        .card-info { flex: 1; }
+        .card-name { font-size: 0.78rem; font-weight: 700; }
+        .card-desc { font-size: 0.65rem; color: var(--text-muted); margin-top: 2px; line-height: 1.3; }
+        .btn-use-card-player { width: 100%; margin-top: 6px; padding: 6px 10px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; color: white; background: rgba(108,99,255,0.5); border: 1px solid rgba(108,99,255,0.4); }
+
+        /* ── ALVO / LADRÃO ── */
+        .target-list { padding: 0 14px 14px; display: flex; flex-direction: column; gap: 8px; }
+        .target-btn { display: flex; align-items: center; gap: 12px; padding: 13px 14px; border-radius: 10px; border: 1.5px solid var(--border); background: var(--surface2); color: var(--text); text-align: left; width: 100%; }
+        .target-btn:active { transform: scale(0.97); }
+
+        /* ── NOTIFICAÇÃO ── */
+        .notif { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); padding: 10px 20px; border-radius: 50px; font-weight: 700; font-size: 0.83rem; color: white; z-index: 200; animation: notifIn 0.3s ease; box-shadow: 0 6px 20px rgba(0,0,0,0.5); white-space: nowrap; max-width: 90vw; text-align: center; }
+        .notif-success { background: linear-gradient(135deg, #06d6a0, #059669); }
+        .notif-error   { background: linear-gradient(135deg, #ff6b6b, #dc2626); }
+        .notif-info    { background: linear-gradient(135deg, #6c63ff, #4f46e5); }
+        .notif-warning { background: linear-gradient(135deg, #ffd166, #f59e0b); color: #1a1100; }
+        @keyframes notifIn { from{transform:translateX(-50%) translateY(-14px);opacity:0} to{transform:translateX(-50%) translateY(0);opacity:1} }
+
+        /* ── CAMPO (field_spot animação) ── */
+        .field-chip { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 50px; font-size: 0.78rem; font-weight: 700; color: white; }
+
+        /* ── NOT MY TURN ── */
+        .waiting-overlay { padding: 20px 16px; }
+        .waiting-card { background: var(--surface); border: 1px dashed var(--border-hi); border-radius: var(--radius); padding: 24px; text-align: center; }
+        .waiting-emoji { font-size: 3rem; margin-bottom: 8px; }
+        .waiting-text { font-size: 0.9rem; color: var(--text-muted); font-weight: 500; }
+
+        /* ── FIM DE JOGO ── */
+        .gameover-screen { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 24px; text-align: center; }
+        .gameover-trophy { font-size: 5rem; filter: drop-shadow(0 0 24px rgba(212,166,10,0.6)); margin-bottom: 12px; }
+        .gameover-title { font-family: var(--font-display); font-size: 2.5rem; letter-spacing: 3px; color: var(--gold); }
+        .gameover-list { width: 100%; max-width: 340px; margin-top: 20px; }
+        .go-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border-radius: var(--radius-sm); margin-bottom: 6px; border: 1px solid var(--border); }
+        .go-rank { font-family: var(--font-display); font-size: 1.3rem; width: 28px; flex-shrink: 0; color: var(--text-muted); }
+
+        /* ── OVERLAY DESCONECTADO ── */
+        .disconnect-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); z-index: 300; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; padding: 24px; }
+        .disconnect-overlay h2 { font-family: var(--font-display); font-size: 2rem; color: var(--red); letter-spacing: 2px; }
+        .disconnect-overlay p { font-size: 0.85rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script>
+/* ═══════════════════════════════════════════════════════════
+   CONFIGURAÇÃO FIREBASE — projeto omniarena2 (mesmo do host)
+   ═══════════════════════════════════════════════════════════ */
+const FIREBASE_CONFIG_FIXED = {
+    apiKey:            'AIzaSyCrNhv1Qe2rTk3olEwK-gkYVvOGFaiPtXc',
+    authDomain:        'omniarena2.firebaseapp.com',
+    databaseURL:       'https://omniarena2-default-rtdb.firebaseio.com',
+    projectId:         'omniarena2',
+    storageBucket:     'omniarena2.firebasestorage.app',
+    messagingSenderId: '491722036391',
+    appId:             '1:491722036391:web:599874161a107b36a4b782',
+};
+
+/* ═══════════════════════════════════════════════════════════
+   CONSTANTES
+   ═══════════════════════════════════════════════════════════ */
+const PRESET_AVATARS = ['😊','🐉','🦁','🐺','🦅','🐯','🦊','🐸','👾','🤖','⚡','🌟'];
+const POWER_CARDS = {
+    FIFTY_FIFTY:  { id:'FIFTY_FIFTY',  name:'50/50',        icon:'✂️', desc:'Elimina 2 erradas',       useIn:'question'  },
+    ONE_OUT:      { id:'ONE_OUT',      name:'Sniper',       icon:'🎯', desc:'Elimina 1 errada',        useIn:'question'  },
+    SKIP_Q:       { id:'SKIP_Q',       name:'Pular',        icon:'⏭️', desc:'Pula pergunta',           useIn:'question'  },
+    IMMUNITY:     { id:'IMMUNITY',     name:'Imunidade',    icon:'🛡️', desc:'Proteção 3 turnos',      useIn:'board'     },
+    PASS_Q:       { id:'PASS_Q',       name:'Presente',     icon:'🎁', desc:'Passa pergunta ao próx', useIn:'question'  },
+    RETRY_CARD:   { id:'RETRY_CARD',   name:'2ª Chance',    icon:'❤️', desc:'Tente de novo',           useIn:'passive'   },
+    REVERSE:      { id:'REVERSE',      name:'Espelho',      icon:'🪞', desc:'Reflete ataques',         useIn:'board'     },
+    ADD_TIME:     { id:'ADD_TIME',     name:'Relógio',      icon:'⏰', desc:'+30s na pergunta',        useIn:'question'  },
+    FREEZE_TIME:  { id:'FREEZE_TIME',  name:'Congelar',     icon:'❄️', desc:'Para o tempo',            useIn:'question'  },
+    LUCKY_DICE:   { id:'LUCKY_DICE',   name:'Dado da Sorte',icon:'🍀', desc:'Soma 2 dados',            useIn:'board'     },
+    UNLUCKY_DICE: { id:'UNLUCKY_DICE', name:'Dado do Azar', icon:'💀', desc:'Oponente vai para trás',  useIn:'board'     },
+    REDUCE_TIME:  { id:'REDUCE_TIME',  name:'Ampulheta',    icon:'⌛', desc:'Reduz tempo do opon.',   useIn:'board'     },
+};
+const FIELDS = {
+    FOG:'🌫️', RANDOM_TRIP:'🌀', ODD_PARTIAL:'🚫', INVERTED:'🙃',
+    MAGNET:'🧲', ENERGY:'⚡', CALM:'🕊️', DESPAIR:'😱', DOUBLE_BONUS:'🎊'
+};
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+/* ═══════════════════════════════════════════════════════════
+   ESTADO DO PLAYER
+   ═══════════════════════════════════════════════════════════ */
+let ps = {
+    // Conexão
+    screen: 'join',       // 'join' | 'lobby' | 'game' | 'gameover'
+    roomCode: '',
+    playerIdx: 0,
+    playerName: '',
+    playerAvatar: '😊',
+    db: null,
+    roomRef: null,
+    actionRef: null,
+    connected: false,
+
+    // Estado do jogo (recebido do host via Firebase)
+    gs: null,             // gameState snapshot completo
+    localTimerVal: 60,    // timer local sincronizado com o host
+    localTimerInterval: null,
+    lastAnswered: false,  // evita duplo envio de resposta
+
+    // Notificação local
+    notif: null,
+    notifTimeout: null,
+};
+
+/* ═══════════════════════════════════════════════════════════
+   UTILIDADES
+   ═══════════════════════════════════════════════════════════ */
+const root = () => document.getElementById('root');
+
+function showNotif(msg, type='info', duration=3000){
+    clearTimeout(ps.notifTimeout);
+    ps.notif = { msg, type };
+    render();
+    ps.notifTimeout = setTimeout(()=>{ ps.notif=null; render(); }, duration);
+}
+
+function vibrate(pattern){ if(navigator.vibrate) navigator.vibrate(pattern); }
+
+/* ─── Envia ação ao Firebase (host processa) ─── */
+function sendAction(type, payload={}){
+    if(!ps.actionRef) return;
+    ps.actionRef.push({
+        type,
+        playerIdx: ps.playerIdx,
+        payload,
+        sentAt: firebase.database.ServerValue.TIMESTAMP,
+    });
+}
+
+/* ─── Conecta ao Firebase e entra na sala ─── */
+function joinRoom(){
+    const code = (document.getElementById('inp-room-code')?.value||'').trim().toUpperCase();
+    const name = (document.getElementById('inp-player-name')?.value||'').trim();
+    const avatar = ps.playerAvatar;
+    const idx = ps.playerIdx;
+
+    if(code.length !== 4){ showNotif('Código deve ter 4 letras','error'); return; }
+    if(!name){ showNotif('Digite seu nome','error'); return; }
+
+    // Pega credenciais Firebase do host via URL ou armazenadas
+    // O player.html acessa o mesmo projeto — as credenciais vêm via URL params
+    const params = new URLSearchParams(location.search);
+    const fbConfig = {
+        apiKey:      params.get('apiKey')      || localStorage.getItem('oq_apiKey')      || '',
+        authDomain:  params.get('authDomain')  || localStorage.getItem('oq_authDomain')  || '',
+        databaseURL: params.get('dbUrl')       || localStorage.getItem('oq_dbUrl')       || '',
+        projectId:   params.get('projectId')   || localStorage.getItem('oq_projectId')   || '',
+    };
+
+    // Usa sempre as credenciais fixas do projeto — ignora URL/localStorage
+    connectAndJoin(FIREBASE_CONFIG_FIXED, code, name, avatar, idx);
+}
+
+function connectAndJoin(fbConfig, code, name, avatar, idx){
+    try {
+        if(firebase.apps.length === 0) firebase.initializeApp(fbConfig);
+        // Salva credenciais para uso futuro
+        localStorage.setItem('oq_apiKey',      fbConfig.apiKey);
+        localStorage.setItem('oq_authDomain',  fbConfig.authDomain);
+        localStorage.setItem('oq_dbUrl',        fbConfig.databaseURL);
+        localStorage.setItem('oq_projectId',   fbConfig.projectId);
+    } catch(e){ showNotif('Erro ao conectar Firebase','error'); return; }
+
+    const db = firebase.database();
+    const roomRef = db.ref(`rooms/${code}`);
+
+    // Verifica se a sala existe
+    roomRef.child('code').once('value', snap=>{
+        if(!snap.exists()||snap.val()!==code){
+            showNotif('Sala não encontrada','error'); return;
+        }
+        // Registra o jogador na sala
+        const playerRef = roomRef.child(`connectedPlayers/${idx}`);
+        playerRef.set({ name, avatar, playerIdx: idx, online: true, joinedAt: firebase.database.ServerValue.TIMESTAMP });
+        playerRef.onDisconnect().update({ online: false });
+
+        ps.db = db;
+        ps.roomRef = roomRef;
+        ps.actionRef = db.ref(`rooms/${code}/actions`);
+        ps.roomCode = code;
+        ps.playerName = name;
+        ps.playerAvatar = avatar;
+        ps.playerIdx = idx;
+        ps.connected = true;
+        ps.screen = 'lobby';
+        ps.lastAnswered = false;
+        render();
+
+        // Ouve o estado do jogo
+        roomRef.child('gameState').on('value', snap=>{
+            const data = snap.val();
+            if(!data) return;
+            const wasAnswering = ps.gs && ps.gs.gameState === 'answering';
+            const nowAnswering = data.gameState === 'answering';
+
+            // Reseta flag de resposta quando uma nova pergunta chega
+            if(!wasAnswering && nowAnswering) ps.lastAnswered = false;
+            if(ps.gs && ps.gs.currentQuestion && data.currentQuestion &&
+               ps.gs.currentQuestion.id !== data.currentQuestion.id) ps.lastAnswered = false;
+
+            ps.gs = data;
+
+            // Sincroniza timer local com o host (a cada 5s)
+            if(data.timer !== undefined) ps.localTimerVal = data.timer;
+
+            // Muda tela com base no status do jogo
+            if(data.gameStatus === 'running') ps.screen = 'game';
+            if(data.gameState === 'game_over') ps.screen = 'gameover';
+
+            render();
+            startLocalTimer();
+        });
+
+        // Ouve se o host desconectou
+        roomRef.child('hostOnline').on('value', snap=>{
+            if(snap.val() === false && ps.screen === 'game'){
+                ps.screen = 'disconnected';
+                render();
+            }
+        });
+    });
+}
+
+/* ─── Timer local (sincronizado pelo host a cada 5s) ─── */
+function startLocalTimer(){
+    clearInterval(ps.localTimerInterval);
+    if(!ps.gs || ps.gs.gameState !== 'answering') return;
+    if(ps.gs.isTimerFrozen) return;
+    ps.localTimerInterval = setInterval(()=>{
+        if(!ps.gs || ps.gs.gameState !== 'answering'){ clearInterval(ps.localTimerInterval); return; }
+        if(ps.gs.isTimerFrozen) return;
+        if(ps.localTimerVal > 0){
+            ps.localTimerVal--;
+            // Atualiza só os elementos do timer sem re-renderizar tudo
+            const td = document.getElementById('p-timer-disp');
+            const tb = document.getElementById('p-timer-bar');
+            if(td) td.textContent = `${ps.localTimerVal}s`;
+            if(tb){ tb.style.width=`${(ps.localTimerVal/60)*100}%`; if(ps.localTimerVal<15) tb.style.backgroundColor='#ff6b6b'; }
+        }
+    }, 1000);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   AÇÕES DO JOGADOR
+   ═══════════════════════════════════════════════════════════ */
+function doRoll(){
+    if(!isMyTurn()) return;
+    if(ps.gs.gameState !== 'waiting_roll' || ps.gs.isRolling) return;
+    vibrate(50);
+    sendAction('ROLL');
+    showNotif('Dado rolado! ⟳', 'info', 1500);
+}
+
+function doAnswer(shuffledIdx){
+    if(!isMyTurn()) return;
+    if(ps.gs.gameState !== 'answering') return;
+    if(ps.lastAnswered) return;
+    ps.lastAnswered = true;
+    vibrate([40, 20, 40]);
+    sendAction('ANSWER', { shuffledIdx });
+    // Feedback visual imediato — confirma ao celular que o envio saiu
+    showNotif('Resposta enviada!', 'info', 1500);
+}
+
+function doUseCard(cardId){
+    if(!isMyTurn()) return;
+    vibrate(60);
+    sendAction('USE_CARD', { cardId });
+    showNotif(`Carta usada: ${POWER_CARDS[cardId]?.name||cardId}`, 'info', 2000);
+}
+
+function doSelectTarget(targetIdx){
+    sendAction('SELECT_TARGET', { targetIdx });
+    showNotif('Alvo selecionado!', 'info', 1500);
+}
+
+function doThiefAction(action){
+    sendAction('THIEF_ACTION', { action });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   HELPERS DE ESTADO
+   ═══════════════════════════════════════════════════════════ */
+function isMyTurn(){
+    if(!ps.gs) return false;
+    return ps.gs.turnIndex === ps.playerIdx;
+}
+function myPlayer(){
+    if(!ps.gs || !ps.gs.players) return null;
+    return ps.gs.players[ps.playerIdx];
+}
+function currentTurnPlayer(){
+    if(!ps.gs || !ps.gs.players) return null;
+    return ps.gs.players[ps.gs.turnIndex];
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDERIZAÇÃO
+   ═══════════════════════════════════════════════════════════ */
+function render(){
+    const el = root();
+    if(!el) return;
+
+    let html = '';
+
+    if(ps.screen === 'join')             html = renderJoin();
+    else if(ps.screen === 'firebase_player') html = renderFirebasePlayer();
+    else if(ps.screen === 'lobby')       html = renderLobby();
+    else if(ps.screen === 'game')        html = renderGame();
+    else if(ps.screen === 'gameover')    html = renderGameOver();
+    else if(ps.screen === 'disconnected') html = renderDisconnected();
+
+    // Notificação global
+    const notifHtml = ps.notif
+        ? `<div class="notif notif-${ps.notif.type}">${ps.notif.msg}</div>` : '';
+
+    el.innerHTML = html + notifHtml;
+    bindEvents();
+}
+
+/* ── JOIN ── */
+function renderJoin(){
+    const avatarButtons = PRESET_AVATARS.map(a=>`
+        <button class="avatar-btn ${ps.playerAvatar===a?'selected':''}" data-avatar="${a}">${a}</button>
+    `).join('');
+    const idxButtons = Array.from({length:6},(_,i)=>`
+        <button class="idx-btn ${ps.playerIdx===i?'selected':''}" data-idx="${i}">Jogador ${i+1}</button>
+    `).join('');
+    return `
+        <div class="screen" style="background:radial-gradient(ellipse at 30% 30%, rgba(108,99,255,0.12) 0%, transparent 55%), var(--bg)">
+            <div class="join-logo">🎲</div>
+            <div class="join-title">OMNIQUEST</div>
+            <div class="join-title" style="font-size:1.4rem;letter-spacing:6px;color:var(--text-muted);margin-top:-6px;margin-bottom:20px">ARENA</div>
+            <div class="card" style="max-width:360px">
+                <div style="margin-bottom:16px">
+                    <label class="field-label">Código da Sala (4 letras)</label>
+                    <input id="inp-room-code" type="text" maxlength="4" class="room-input" placeholder="ABCD" value="${ps.roomCode||''}">
+                </div>
+                <div style="margin-bottom:12px">
+                    <label class="field-label">Seu Nome</label>
+                    <input id="inp-player-name" type="text" class="name-input" placeholder="Como você se chama?" maxlength="20" value="${ps.playerName||''}">
+                </div>
+                <div style="margin-bottom:12px">
+                    <label class="field-label">Seu Avatar</label>
+                    <div class="avatar-row">${avatarButtons}</div>
+                </div>
+                <div style="margin-bottom:4px">
+                    <label class="field-label">Qual jogador você é?</label>
+                    <div class="player-idx-select">${idxButtons}</div>
+                </div>
+                <button id="btn-join" class="btn-primary" style="margin-top:16px;background:linear-gradient(135deg,#ffd166,#f59e0b);color:#1a1100">
+                    🚪 ENTRAR NA SALA
+                </button>
+                <p style="font-size:0.7rem;color:var(--text-muted);text-align:center;margin-top:12px;line-height:1.5">
+                    Abra <b>host.html</b> no computador do telão para iniciar o jogo.
+                </p>
+            </div>
+        </div>`;
+}
+
+/* ── FIREBASE CONFIG (player sem credenciais salvas) ── */
+function renderFirebasePlayer(){
+    return `
+        <div class="screen">
+            <div class="card">
+                <div style="text-align:center;margin-bottom:16px">
+                    <div style="font-size:2rem">🔥</div>
+                    <div style="font-family:var(--font-display);font-size:1.4rem;letter-spacing:2px;color:var(--accent)">FIREBASE</div>
+                    <p style="font-size:0.78rem;color:var(--text-muted);margin-top:6px;line-height:1.5">
+                        Insira o Database URL do mesmo projeto Firebase usado no telão.
+                    </p>
+                </div>
+                <div style="margin-bottom:10px">
+                    <label class="field-label">API Key</label>
+                    <input id="fp-apiKey" type="text" placeholder="AIzaSy..." value="${localStorage.getItem('oq_apiKey')||''}">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label class="field-label">Database URL</label>
+                    <input id="fp-dbUrl" type="text" placeholder="https://projeto-default-rtdb.firebaseio.com" value="${localStorage.getItem('oq_dbUrl')||''}">
+                </div>
+                <div style="margin-bottom:10px">
+                    <label class="field-label">Auth Domain</label>
+                    <input id="fp-authDomain" type="text" placeholder="projeto.firebaseapp.com" value="${localStorage.getItem('oq_authDomain')||''}">
+                </div>
+                <div style="margin-bottom:16px">
+                    <label class="field-label">Project ID</label>
+                    <input id="fp-projectId" type="text" placeholder="meu-projeto" value="${localStorage.getItem('oq_projectId')||''}">
+                </div>
+                <button id="btn-fp-connect" class="btn-primary">🔌 Conectar e Entrar</button>
+                <button id="btn-fp-back" class="btn-primary" style="background:#374151;margin-top:8px">← Voltar</button>
+            </div>
+        </div>`;
+}
+
+/* ── LOBBY ── */
+function renderLobby(){
+    const p = myPlayer();
+    return `
+        <div class="screen">
+            <div class="card lobby-card">
+                <div class="lobby-avatar">${ps.playerAvatar}</div>
+                <div class="lobby-name">${ps.playerName}</div>
+                <div class="lobby-room">Sala <b>${ps.roomCode}</b> · Jogador ${ps.playerIdx+1}</div>
+                <div class="status-chip chip-online">
+                    <span>✅</span><span>Conectado</span>
+                </div>
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
+                    <div class="status-chip chip-waiting pulse">
+                        <span>⏳</span><span>Aguardando o host iniciar o jogo…</span>
+                    </div>
+                </div>
+                <p style="font-size:0.72rem;color:var(--text-muted);margin-top:16px;line-height:1.5">
+                    Fique com a tela ligada! O jogo começará em breve.<br>
+                    Sala: <b style="color:var(--accent)">${ps.roomCode}</b>
+                </p>
+            </div>
+        </div>`;
+}
+
+/* ── GAME ── */
+function renderGame(){
+    const gs = ps.gs;
+    if(!gs || !gs.players) return renderLobby();
+
+    const me = gs.players[ps.playerIdx];
+    const turnPlayer = gs.players[gs.turnIndex];
+    const myTurn = isMyTurn();
+    const theme = gs.currentTheme || {};
+
+    // Header
+    const header = `
+        <div class="game-header" style="background:${theme.bgPanel||'var(--surface)'}">
+            <div class="game-header-left">
+                <div class="my-avatar">${ps.playerAvatar}</div>
+                <div class="my-info">
+                    <div class="my-name">${ps.playerName}</div>
+                    <div class="my-pos">Casa ${(me?.position||0)+1} · ${me?.score||0} pts</div>
+                </div>
+            </div>
+            <div class="room-badge">🎲 ${ps.roomCode}</div>
+        </div>`;
+
+    // Campo ativo
+    const fieldHtml = gs.activeField
+        ? `<div style="padding:8px 16px 0"><div class="field-chip" style="background:rgba(108,99,255,0.2);border:1px solid rgba(108,99,255,0.3);color:var(--accent-hi)">${FIELDS[gs.activeField.type]||'🌌'} Campo Ativo — ${gs.activeField.turns} turnos</div></div>`
+        : '';
+
+    // Turn banner
+    const turnBanner = `
+        <div class="turn-banner${myTurn?' my-turn':''}">
+            <div class="turn-avatar-big">${turnPlayer?.avatar||'?'}</div>
+            <div class="turn-info">
+                <div class="turn-label">${myTurn?'⚡ SUA VEZ!':'Vez de'}</div>
+                <div class="turn-name" style="color:${myTurn?'var(--accent-hi)':'var(--text)'}">${myTurn?'JOGUE AGORA':turnPlayer?.name||'?'}</div>
+            </div>
+            ${myTurn?`<div style="font-size:1.5rem;animation:pulse 1s infinite">👈</div>`:''}
+        </div>`;
+
+    // Scoreboard
+    const rows = [...(gs.players||[])].map((p,origIdx)=>({...p,_origIdx:origIdx})).sort((a,b)=>b.position-a.position).map((p,i)=>{
+        const isMe = (p._origIdx === ps.playerIdx);
+        const isActive = gs.turnIndex === p._origIdx;
+        let badges = '';
+        if(p.skipTurns>0) badges+=`<span class="badge-sm" style="background:#7c3aed">⏸</span>`;
+        if(p.immunityTurns>0) badges+=`<span class="badge-sm" style="background:#059669">🛡</span>`;
+        if(p.isStuck) badges+=`<span class="badge-sm" style="background:#78350f">⏱️</span>`;
+        return `<div class="score-row${isActive?' active-player':''}${isMe?' me':''}">
+            <div class="score-pos-num">${i+1}</div>
+            <div class="score-avatar">${p.avatar}</div>
+            <div class="score-name">${p.name}${isMe?` <span style="color:var(--green);font-size:0.65rem">(eu)</span>`:''}</div>
+            <div style="display:flex;gap:3px;align-items:center">${badges}</div>
+            <div class="score-tile">Casa ${p.position+1}</div>
+            <div class="score-pts">★${p.score}</div>
+        </div>`;
+    }).join('');
+    const scoreboard = `
+        <div class="scoreboard">
+            <div class="scoreboard-title">📊 Placar</div>
+            ${rows}
+        </div>`;
+
+    // ÁREA DE AÇÃO PRINCIPAL
+    let actionHtml = '';
+
+    // ── Pergunta (state = answering && minha vez) ──
+    if(gs.gameState === 'answering' && gs.currentQuestion && myTurn){
+        const q = gs.currentQuestion;
+        const letters = ['A','B','C','D'];
+        const optButtons = (gs.shuffledOptions||[]).map((o, idx)=>{
+            if((gs.hiddenOptionIndices||[]).includes(idx)) return '';
+            return `<button class="opt-btn ${ps.lastAnswered?'disabled':''}" data-answer-idx="${idx}" ${ps.lastAnswered?'disabled':''}>
+                <span class="opt-letter" style="background:${theme.accent||'var(--accent)'}">${letters[idx]}</span>
+                <span>${o.text}</span>
+            </button>`;
+        }).join('');
+
+        // Cartas que podem ser usadas durante a pergunta
+        const questionCards = (me?.cards||[]).filter(c=>POWER_CARDS[c]&&['question','passive'].includes(POWER_CARDS[c].useIn));
+        const cardBtns = questionCards.map(c=>`
+            <button class="btn-card btn-qcard" data-card="${c}">${POWER_CARDS[c].icon} ${POWER_CARDS[c].name}</button>
+        `).join('');
+
+        actionHtml = `
+            <div class="action-card question-card">
+                <div class="timer-bar-container"><div class="timer-bar" id="p-timer-bar" style="width:${(ps.localTimerVal/60)*100}%"></div></div>
+                <div class="question-header">
+                    <div class="question-cat">${q.category||'Geral'}</div>
+                    <div class="question-timer" id="p-timer-disp">${ps.localTimerVal}s</div>
+                </div>
+                <div class="question-text">${q.question}</div>
+                ${cardBtns?`<div class="card-actions">${cardBtns}</div>`:''}
+                <div class="question-options">${optButtons}</div>
+                ${ps.lastAnswered?`<p style="text-align:center;font-size:0.78rem;color:var(--green);padding:0 14px 14px">✅ Resposta enviada! Aguardando resultado...</p>`:''}
+            </div>`;
+    }
+    // ── Pergunta (não é minha vez, mas estou vendo) ──
+    else if(gs.gameState === 'answering' && gs.currentQuestion && !myTurn){
+        const q = gs.currentQuestion;
+        actionHtml = `
+            <div class="action-card" style="padding:16px;text-align:center">
+                <div style="font-size:2rem;margin-bottom:6px">🤔</div>
+                <div style="font-weight:700;font-size:0.85rem;color:var(--text-muted)">${turnPlayer?.name} está respondendo...</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);margin-top:8px;padding:10px;background:var(--surface2);border-radius:var(--radius-sm)">${q.question}</div>
+            </div>`;
+    }
+    // ── Dado (minha vez, aguardando rolar) ──
+    else if(gs.gameState === 'waiting_roll' && myTurn){
+        const diceEmoji = gs.isRolling ? '🎲' : (DICE_FACES[gs.diceValue-1]||'🎲');
+
+        // Cartas de tabuleiro (antes de rolar)
+        const boardCards = (me?.cards||[]).filter(c=>POWER_CARDS[c]&&POWER_CARDS[c].useIn==='board');
+        const boardCardBtns = boardCards.map(c=>`
+            <button class="btn-card btn-boardcard" data-card="${c}">${POWER_CARDS[c].icon} ${POWER_CARDS[c].name}</button>
+        `).join('');
+
+        actionHtml = `
+            <div class="action-card">
+                <div class="action-card-header" style="background:rgba(108,99,255,0.1);border-bottom:1px solid var(--border)">
+                    <span>⚡</span><span style="color:var(--accent-hi)">SUA VEZ — ROLE O DADO!</span>
+                </div>
+                <div class="dice-display">${gs.isRolling?'🎲':diceEmoji}</div>
+                <div class="dice-result-text">${gs.isRolling?'Rolando...':gs.diceDisplay!=='1'?`Resultado: ${gs.diceDisplay}`:''}</div>
+                ${boardCardBtns?`<div class="card-actions" style="padding:0 14px 10px">${boardCardBtns}</div>`:''}
+                <div style="padding:0 14px 14px">
+                    <button id="btn-roll" class="btn-roll" style="background:${theme.btnColor||'var(--accent)'}" ${gs.isRolling?'disabled':''}>
+                        ${gs.isRolling?'⟳ Rolando...':'🎲 ROLAR DADO'}
+                    </button>
+                </div>
+            </div>`;
+    }
+    // ── Seleção de alvo ──
+    else if(gs.modalContent === 'target_selection' && myTurn){
+        const targets = (gs.players||[]).map((p,i)=>({p,i})).filter(x=>x.i!==gs.turnIndex);
+        const targetBtns = targets.map(t=>`
+            <button class="target-btn" data-target-idx="${t.i}">
+                <div style="font-size:1.6rem">${t.p.avatar}</div>
+                <div style="flex:1">
+                    <div style="font-weight:700;font-size:0.88rem">${t.p.name}</div>
+                    <div style="font-size:0.7rem;color:var(--text-muted)">Casa ${t.p.position+1} · ${t.p.score} pts</div>
+                </div>
+                <div style="color:var(--accent);font-size:0.8rem">🎯</div>
+            </button>`).join('');
+        actionHtml = `
+            <div class="action-card">
+                <div class="action-card-header" style="background:rgba(220,38,38,0.15);border-bottom:1px solid var(--border);color:#ff6b6b">
+                    <span>🎯</span><span>ESCOLHA O ALVO</span>
+                </div>
+                <div class="target-list">${targetBtns}</div>
+            </div>`;
+    }
+    // ── Ação do ladrão ──
+    else if(gs.modalContent === 'thief_action' && myTurn){
+        actionHtml = `
+            <div class="action-card">
+                <div class="action-card-header" style="background:rgba(146,64,14,0.2);border-bottom:1px solid var(--border);color:#d97706">
+                    <span>🦊</span><span>AÇÃO DO LADRÃO</span>
+                </div>
+                <div style="padding:14px;display:flex;flex-direction:column;gap:8px">
+                    <button id="btn-steal" class="btn-primary" style="background:linear-gradient(135deg,#92400e,#78350f)">🃏 Roubar todas as cartas</button>
+                    <button id="btn-swap-cards" class="btn-primary" style="background:linear-gradient(135deg,#1d4ed8,#1e40af)">🔀 Trocar cartas</button>
+                </div>
+            </div>`;
+    }
+    // ── Não é minha vez / aguardando ──
+    else if(!myTurn){
+        const state2label = { waiting_roll:'Rolando o dado...', moving:'Movendo no tabuleiro...', answering:'Respondendo pergunta...', game_over:'Fim de jogo!' };
+        actionHtml = `
+            <div class="waiting-overlay">
+                <div class="waiting-card">
+                    <div class="waiting-emoji pulse">${gs.gameState==='moving'?'🏃':gs.gameState==='answering'?'🤔':'⏳'}</div>
+                    <div class="waiting-text">${state2label[gs.gameState]||'Aguardando...'}</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:6px">Vez de <b>${turnPlayer?.name||'?'}</b></div>
+                </div>
+            </div>`;
+    }
+
+    // Mochila (cartas do jogador — visível fora de pergunta)
+    let inventoryHtml = '';
+    if(me && me.cards && me.cards.length > 0 && gs.gameState !== 'answering'){
+        const items = me.cards.map(c=>{
+            const card = POWER_CARDS[c]; if(!card) return '';
+            const canUse = myTurn && (card.useIn==='board'&&gs.gameState==='waiting_roll' || card.useIn==='question'&&gs.gameState==='answering');
+            return `<div class="card-item">
+                <div class="card-icon">${card.icon}</div>
+                <div class="card-info">
+                    <div class="card-name">${card.name}</div>
+                    <div class="card-desc">${card.desc}</div>
+                    ${canUse?`<button class="btn-use-card-player btn-inv-use" data-card="${c}">USAR</button>`:''}
+                </div>
+            </div>`;
+        }).join('');
+        inventoryHtml = `
+            <div class="inventory-section">
+                <div class="inv-title">🎒 Mochila (${me.cards.length} carta${me.cards.length>1?'s':''})</div>
+                <div class="cards-grid">${items}</div>
+            </div>`;
+    }
+
+    return `
+        <div class="game-screen" style="background:${theme.bgApp||'var(--bg)'}">
+            ${header}
+            <div class="status-panel">
+                ${fieldHtml}
+                ${turnBanner}
+                ${scoreboard}
+            </div>
+            <div class="action-area">
+                ${actionHtml}
+            </div>
+            ${inventoryHtml}
+        </div>`;
+}
+
+/* ── GAME OVER ── */
+function renderGameOver(){
+    const gs = ps.gs;
+    if(!gs || !gs.players) return '';
+    const sorted = [...gs.players].map((p,origIdx)=>({...p,_origIdx:origIdx})).sort((a,b)=>b.score-a.score||b.position-a.position);
+    const ranks = ['🥇','🥈','🥉','4°','5°','6°'];
+    const rows = sorted.map((p,i)=>{
+        const isMe = (p._origIdx === ps.playerIdx);
+        return `<div class="go-row" style="${isMe?'border-color:var(--accent);background:rgba(108,99,255,0.08)':''}">
+            <div class="go-rank">${ranks[i]}</div>
+            <div style="font-size:1.3rem">${p.avatar}</div>
+            <div style="flex:1"><div style="font-weight:700;font-size:0.88rem">${p.name}${isMe?' (eu)':''}</div><div style="font-size:0.7rem;color:var(--text-muted)">Casa ${p.position+1}</div></div>
+            <div style="font-weight:700;color:var(--gold)">★${p.score}</div>
+        </div>`;
+    }).join('');
+    const me = (sorted[0]?._origIdx === ps.playerIdx);
+    return `
+        <div class="gameover-screen" style="background:var(--bg)">
+            <div class="gameover-trophy">${me?'🏆':'🎮'}</div>
+            <div class="gameover-title">${me?'VOCÊ VENCEU!':'FIM DE JOGO'}</div>
+            <p style="font-size:0.82rem;color:var(--text-muted);margin-top:6px">${me?'Parabéns pela vitória!':'Boa partida!'}</p>
+            <div class="gameover-list">${rows}</div>
+            <button id="btn-go-home" class="btn-primary" style="max-width:340px;margin-top:16px;background:#374151">🏠 Voltar ao Início</button>
+        </div>`;
+}
+
+/* ── DESCONECTADO ── */
+function renderDisconnected(){
+    return `
+        <div class="disconnect-overlay">
+            <div style="font-size:3rem">🔌</div>
+            <h2>HOST DESCONECTADO</h2>
+            <p>O computador do telão saiu da sala ou perdeu a conexão.</p>
+            <button id="btn-go-home" class="btn-primary" style="max-width:280px">🏠 Voltar ao Início</button>
+        </div>`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BIND DE EVENTOS
+   ═══════════════════════════════════════════════════════════ */
+function bindEvents(){
+    // JOIN
+    const btnJoin = document.getElementById('btn-join');
+    if(btnJoin) btnJoin.onclick = joinRoom;
+
+    const roomInput = document.getElementById('inp-room-code');
+    if(roomInput) roomInput.addEventListener('keydown', e=>{ if(e.key==='Enter') joinRoom(); });
+
+    // Avatar seleção
+    document.querySelectorAll('.avatar-btn').forEach(btn=>{
+        btn.onclick = () => { ps.playerAvatar = btn.dataset.avatar; render(); };
+    });
+
+    // Seleção de idx de jogador
+    document.querySelectorAll('.idx-btn').forEach(btn=>{
+        btn.onclick = () => { ps.playerIdx = parseInt(btn.dataset.idx); render(); };
+    });
+
+    // FIREBASE PLAYER CONFIG
+    const btnFpConnect = document.getElementById('btn-fp-connect');
+    if(btnFpConnect) btnFpConnect.onclick = () => {
+        const config = {
+            apiKey:      document.getElementById('fp-apiKey')?.value.trim()||'',
+            databaseURL: document.getElementById('fp-dbUrl')?.value.trim()||'',
+            authDomain:  document.getElementById('fp-authDomain')?.value.trim()||'',
+            projectId:   document.getElementById('fp-projectId')?.value.trim()||'',
+        };
+        if(!config.databaseURL){ showNotif('Insira o Database URL','error'); return; }
+        connectAndJoin(config, ps.roomCode, ps.playerName, ps.playerAvatar, ps.playerIdx);
+    };
+    const btnFpBack = document.getElementById('btn-fp-back');
+    if(btnFpBack) btnFpBack.onclick = () => { ps.screen='join'; render(); };
+
+    // GAME
+    const btnRoll = document.getElementById('btn-roll');
+    if(btnRoll) btnRoll.onclick = doRoll;
+
+    // Opções de resposta
+    document.querySelectorAll('[data-answer-idx]').forEach(btn=>{
+        btn.onclick = () => doAnswer(parseInt(btn.dataset.answerIdx));
+    });
+
+    // Cartas (durante pergunta)
+    document.querySelectorAll('.btn-qcard').forEach(btn=>{
+        btn.onclick = () => doUseCard(btn.dataset.card);
+    });
+
+    // Cartas de tabuleiro (sidebar)
+    document.querySelectorAll('.btn-boardcard').forEach(btn=>{
+        btn.onclick = () => doUseCard(btn.dataset.card);
+    });
+
+    // Cartas do inventário
+    document.querySelectorAll('.btn-inv-use').forEach(btn=>{
+        btn.onclick = () => doUseCard(btn.dataset.card);
+    });
+
+    // Seleção de alvo
+    document.querySelectorAll('[data-target-idx]').forEach(btn=>{
+        btn.onclick = () => doSelectTarget(parseInt(btn.dataset.targetIdx));
+    });
+
+    // Ladrão
+    const btnSteal = document.getElementById('btn-steal');
+    if(btnSteal) btnSteal.onclick = () => doThiefAction('steal');
+    const btnSwapCards = document.getElementById('btn-swap-cards');
+    if(btnSwapCards) btnSwapCards.onclick = () => doThiefAction('swap');
+
+    // Voltar ao início (gameover / desconectado)
+    const btnHome = document.getElementById('btn-go-home');
+    if(btnHome) btnHome.onclick = () => {
+        ps.screen='join'; ps.gs=null; ps.connected=false;
+        clearInterval(ps.localTimerInterval);
+        if(ps.roomRef) ps.roomRef.off();
+        render();
+    };
+}
+
+/* ── Inicialização ── */
+// render() é chamado pelo onload do firebase-database-compat.js abaixo
+</script>
+
+<!-- Firebase SDK carrega DEPOIS do HTML/CSS/JS inline para garantir disponibilidade -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script>render();</script>
+</body>
+</html>
